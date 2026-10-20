@@ -61,15 +61,15 @@ function pickVoice(lang: Lang): SpeechSynthesisVoice | undefined {
   );
 }
 
-/** Speak a short phrase in the child's language. Resolves when finished. */
-export function speak(text: string, lang: Lang, rate = 0.85): Promise<void> {
+/** Speech synthesis fallback, used only when no clip is available. */
+function synth(text: string, lang: Lang, rate = 0.85): Promise<void> {
   return new Promise((resolve) => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
       resolve();
       return;
     }
-    const synth = window.speechSynthesis;
-    synth.cancel();
+    const s = window.speechSynthesis;
+    s.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = LANG_TAG[lang];
     u.rate = rate;
@@ -78,10 +78,104 @@ export function speak(text: string, lang: Lang, rate = 0.85): Promise<void> {
     if (voice) u.voice = voice;
     u.onend = () => resolve();
     u.onerror = () => resolve();
-    synth.speak(u);
-    // Safety net: iOS sometimes drops onend.
-    setTimeout(resolve, 4000);
+    s.speak(u);
+    setTimeout(resolve, 4000); // iOS sometimes drops onend
   });
+}
+
+// ---------------------------------------------------------------- clips
+// Recorded / generated audio. Each phrase maps to one clip, fetched from
+// /api/tts (which returns a cached file after the first generation) and
+// decoded once per page load. Playback goes through the AudioContext, so it
+// works on iOS after the first tap without further gestures.
+
+const clips = new Map<string, Promise<AudioBuffer | null>>();
+let current: AudioBufferSourceNode | null = null;
+/** Set to false to force the synthesizer (e.g. when offline). */
+let clipsEnabled = true;
+
+export function setClipsEnabled(on: boolean) {
+  clipsEnabled = on;
+}
+
+function loadClip(text: string): Promise<AudioBuffer | null> {
+  const key = text.trim();
+  let p = clips.get(key);
+  if (!p) {
+    p = (async () => {
+      const c = getAudioContext();
+      if (!c) return null;
+      try {
+        const res = await fetch(`/api/tts?text=${encodeURIComponent(key)}`);
+        if (!res.ok) return null;
+        const buf = await res.arrayBuffer();
+        return await c.decodeAudioData(buf);
+      } catch {
+        return null;
+      }
+    })();
+    clips.set(key, p);
+  }
+  return p;
+}
+
+/** Warms the cache for a list of phrases (fire and forget). */
+export function prefetch(texts: string[]) {
+  if (typeof window === "undefined" || !clipsEnabled) return;
+  for (const t of texts) void loadClip(t);
+}
+
+function playBuffer(buffer: AudioBuffer): Promise<void> {
+  return new Promise((resolve) => {
+    const c = getAudioContext();
+    if (!c) return resolve();
+    if (current) {
+      try {
+        current.stop();
+      } catch {
+        /* ignore */
+      }
+    }
+    const src = c.createBufferSource();
+    src.buffer = buffer;
+    src.connect(c.destination);
+    src.onended = () => {
+      if (current === src) current = null;
+      resolve();
+    };
+    current = src;
+    src.start();
+  });
+}
+
+export function stopSpeaking() {
+  if (current) {
+    try {
+      current.stop();
+    } catch {
+      /* ignore */
+    }
+    current = null;
+  }
+  if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+}
+
+/** Speak one phrase: clip if available, synthesizer otherwise. Resolves when finished. */
+export async function speak(text: string, lang: Lang, rate = 0.85): Promise<void> {
+  if (clipsEnabled && lang === "pl") {
+    const buffer = await loadClip(text);
+    if (buffer) return playBuffer(buffer);
+  }
+  return synth(text, lang, rate);
+}
+
+/** Speak several phrases one after another (each one cached separately). */
+export async function speakSeq(parts: string[], lang: Lang, rate = 0.85): Promise<void> {
+  for (const p of parts) {
+    if (!p) continue;
+    await speak(p, lang, rate);
+    await new Promise((r) => setTimeout(r, 120));
+  }
 }
 
 /** Little reward sounds generated with the Web Audio API: no files needed. */

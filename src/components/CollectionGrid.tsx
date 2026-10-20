@@ -1,7 +1,7 @@
 "use client";
 
 import type { World } from "@/engine/content";
-import { speak, unlockAudio } from "@/lib/audio";
+import { speakSeq, unlockAudio } from "@/lib/audio";
 
 /** Highlights the letters the child already knows inside a name. */
 export function Markup({ text, known }: { text: string; known: string[] }) {
@@ -28,7 +28,7 @@ export default function CollectionGrid({ world, unlocked, known }: { world: Worl
             key={item.name}
             onClick={async () => {
               await unlockAudio();
-              speak(`${item.name}. ${item.fact}`, "pl", 0.9);
+              speakSeq([item.name, item.fact], "pl", 0.9);
             }}
             className="flex w-44 flex-col items-center gap-2 rounded-[2rem] bg-white p-5 shadow-xl active:scale-95"
           >

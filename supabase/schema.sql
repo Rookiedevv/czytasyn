@@ -94,3 +94,11 @@ create policy "own sessions" on public.czytasyn_sessions
   for all to authenticated
   using (exists (select 1 from public.czytasyn_children c where c.id = child_id and c.user_id = (select auth.uid())))
   with check (exists (select 1 from public.czytasyn_children c where c.id = child_id and c.user_id = (select auth.uid())));
+
+-- ---------------------------------------------------------------------------
+-- Audio clips bucket (generated TTS + parent recordings). Applied 2026-10-20.
+-- ---------------------------------------------------------------------------
+insert into storage.buckets (id, name, public) values ('czytasyn-audio', 'czytasyn-audio', true) on conflict (id) do nothing;
+create policy "czytasyn audio public read" on storage.objects for select to public using (bucket_id = 'czytasyn-audio');
+create policy "czytasyn audio authenticated write" on storage.objects for insert to authenticated with check (bucket_id = 'czytasyn-audio');
+create policy "czytasyn audio authenticated update" on storage.objects for update to authenticated using (bucket_id = 'czytasyn-audio') with check (bucket_id = 'czytasyn-audio');

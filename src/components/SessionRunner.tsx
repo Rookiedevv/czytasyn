@@ -8,7 +8,7 @@ import { SAY_PL } from "@/engine/graph";
 import { masteredGraphemes, practisingGraphemes } from "@/engine/model";
 import type { TrialResult } from "@/engine/evaluate";
 import { finishSession } from "@/actions/engine";
-import { playTone, speak, unlockAudio } from "@/lib/audio";
+import { playTone, prefetch, speak, speakSeq, unlockAudio } from "@/lib/audio";
 import { Markup } from "./CollectionGrid";
 
 type Props = {
@@ -20,25 +20,32 @@ type Props = {
 
 const say = (g: string) => SAY_PL[g] ?? g;
 
-/** What the voice says when a trial appears. */
-function promptFor(t: Trial): string {
+/**
+ * What the voice says when a trial appears, as separate phrases: each phrase is
+ * one cached audio clip, so instruction phrases are reused across trials and
+ * letter sounds can later be swapped for the parent's own recordings.
+ */
+function promptFor(t: Trial): string[] {
   switch (t.type) {
     case "sound":
-      return `${say(t.grapheme)}. Jaką głoskę słyszysz? Dotknij literę.`;
+      return [say(t.grapheme), "Jaką głoskę słyszysz? Dotknij literę."];
     case "syllable":
-      return `${say(t.c)}, ${say(t.v)}, ${t.target}. Dotknij: ${t.target}.`;
+      return [say(t.c), say(t.v), t.target, `Dotknij: ${t.target}.`];
     case "word":
-      return `Przeczytaj wyraz i dotknij obrazek.`;
+      return ["Przeczytaj wyraz i dotknij obrazek."];
     case "sentence":
-      return `${t.text} Dotknij obrazek, który pasuje.`;
+      return [t.text, "Dotknij obrazek, który pasuje."];
     case "pa-clap":
-      return `${t.word.text}. Ile sylab? Klaśnij i dotknij liczbę. ${t.word.syllables.join(", ")}.`;
+      return [t.word.text, "Ile sylab? Klaśnij i dotknij liczbę.", t.word.syllables.join(", ") + "."];
     case "pa-first":
-      return `Który obrazek zaczyna się na ${say(t.sound)}?`;
+      return ["Który obrazek zaczyna się na", say(t.sound) + "?"];
     case "peek":
-      return `${t.word.text}. To słowo z Twojego świata.`;
+      return [t.word.text, "To słowo z Twojego świata."];
   }
 }
+
+/** Short answers the voice gives. */
+const PHRASES = { great: "Super!", again: "Spróbuj jeszcze raz." };
 
 export default function SessionRunner({ child, world, session, collected }: Props) {
   const [queue, setQueue] = useState<Trial[]>(session.trials);
@@ -71,20 +78,27 @@ export default function SessionRunner({ child, world, session, collected }: Prop
     t0.current = performance.now();
     triedThis.current = false;
     setLocked(true);
-    await speak(promptFor(t), "pl", t.type === "sound" || t.type === "syllable" ? 0.75 : 0.85);
+    await speakSeq(promptFor(t), "pl", t.type === "sound" || t.type === "syllable" ? 0.75 : 0.85);
     t0.current = performance.now();
     setLocked(false);
   }
 
   async function start() {
     await unlockAudio();
+    // Warm the audio cache for the whole session while the child taps Start.
+    const texts = new Set<string>([PHRASES.great, PHRASES.again]);
+    for (const t of queueRef.current) {
+      promptFor(t).forEach((x) => texts.add(x));
+      if (t.type === "word" || t.type === "sentence") texts.add(t.word.text);
+    }
+    prefetch([...texts]);
     setPhase("run");
     await present(queueRef.current[0]);
   }
 
   async function replay() {
     await unlockAudio();
-    if (trial) await speak(promptFor(trial), "pl", 0.75);
+    if (trial) await speakSeq(promptFor(trial), "pl", 0.75);
   }
 
   function record(t: Trial, ok: boolean) {
@@ -145,7 +159,7 @@ export default function SessionRunner({ child, world, session, collected }: Prop
       if (!triedThis.current) setFirstTryOk((n) => n + 1);
       consecutiveErrors.current = 0;
       record(trial, !triedThis.current);
-      await speak(trial.type === "word" || trial.type === "sentence" ? trial.word.text : "Super!", "pl", 1);
+      await speak(trial.type === "word" || trial.type === "sentence" ? trial.word.text : PHRASES.great, "pl", 1);
       await advance();
     } else {
       playTone("wrong");
@@ -166,7 +180,7 @@ export default function SessionRunner({ child, world, session, collected }: Prop
       if (consecutiveErrors.current >= 3) {
         updateQueue((q) => q.filter((t, i) => i <= index || !session.introduced.includes(t.node ?? "")));
       }
-      await speak("Spróbuj jeszcze raz.", "pl", 1);
+      await speak(PHRASES.again, "pl", 1);
       setTimeout(() => setFeedback(null), 400);
     }
   }
@@ -209,7 +223,7 @@ export default function SessionRunner({ child, world, session, collected }: Prop
           <button
             onClick={async () => {
               await unlockAudio();
-              speak(`${item.name}. ${item.fact}`, "pl", 0.9);
+              speakSeq([item.name, item.fact], "pl", 0.9);
             }}
             className="flex flex-col items-center gap-2 rounded-[2.5rem] bg-white px-10 py-6 shadow-xl active:scale-95"
           >
