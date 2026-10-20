@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* ui-rounded = SF Rounded on iPad: friendly, big-counter letterforms, no font download. */
+  --font-sans: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", system-ui, sans-serif;
+}
+
+html {
+  /* Child UI: no text selection, no double-tap zoom, no rubber-band scroll. */
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: #1e293b;
+  background: #fffbeb;
+  touch-action: manipulation;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+button {
+  touch-action: manipulation;
+  cursor: pointer;
+}
