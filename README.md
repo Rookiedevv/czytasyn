@@ -7,24 +7,19 @@ Google once; children pick their avatar and play. Children never have accounts.
 ## Stack
 
 - Next.js (App Router) on Vercel
-- Auth.js with Google sign-in (parent account)
-- Supabase Postgres + Drizzle ORM (child profiles, lesson progress)
+- Supabase: Google sign-in (parent account) and Postgres (child profiles, lesson progress)
 - Service worker for offline use, Web Speech API for the voice (recorded audio: TODO)
 
 ## Deploy (one time)
 
-1. **Vercel** → New Project → import this repo → Deploy. Note the URL (e.g. `https://czytasyn.vercel.app`).
-2. **Supabase** → any project (a new one, or an existing one — Czytasyn keeps its tables in its own `czytasyn` schema) → Connect → copy the **Transaction pooler** connection string (port 6543) and, optionally, the **Direct connection** string.
-3. **Google Cloud** → create project → OAuth consent screen (External, add yourself as test user) →
-   Credentials → OAuth client ID (Web application) with redirect URIs:
-   - `http://localhost:3000/api/auth/callback/google`
-   - `https://<your-vercel-url>/api/auth/callback/google`
-4. Vercel project → Settings → **Environment Variables**:
-   - `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` from step 3
-   - `AUTH_SECRET` — any random string (https://generate-secret.vercel.app/32)
-   - `DATABASE_URL` (pooler string from step 2) and `DIRECT_URL` (direct string, optional)
-5. Deployments → Redeploy. The build runs the database migrations automatically
-   (`scripts/migrate.mjs`), so no manual database setup is needed.
+1. **Supabase** → project → SQL Editor → paste and run `supabase/schema.sql` (creates the two
+   `czytasyn_*` tables with Row Level Security). Then Authentication → Providers → enable **Google**
+   (needs a Google Cloud OAuth client whose redirect URI is `https://<project-ref>.supabase.co/auth/v1/callback`).
+2. **Vercel** → New Project → import this repo. Environment variables (from Supabase → Connect → Framework):
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+   Deploy and note the URL.
+3. Supabase → Authentication → URL Configuration → add `https://<your-vercel-url>/auth/callback` to Redirect URLs.
 
 Then on the iPad: open the URL in Safari → Share → **Add to Home Screen**.
 
@@ -48,20 +43,17 @@ src/app/                    routes
   app/page.tsx              child picker
   app/parent/page.tsx       parent area (behind a parent gate)
   app/play/[childId]/       lesson map → lesson
+  auth/callback/route.ts    Google sign-in return URL
   install/page.tsx          "add to home screen" instructions
 src/components/             LessonRunner, ParentGate, offline sync, SW registration
 src/content/lessons.ts      lesson content (PL + EN) and UI strings
-src/actions/children.ts     server actions: children + progress
-src/db/                     Drizzle schema + connection
+src/actions/children.ts     server actions: children + progress (Supabase, RLS-protected)
+src/lib/supabase/           Supabase clients (server, browser)
 src/lib/audio.ts            iPad audio unlock, speech, reward sounds
+src/proxy.ts                session refresh + /app protection
 public/sw.js                service worker
-drizzle/                    SQL migrations (generated with `npm run db:generate`)
+supabase/schema.sql         database tables and policies
 ```
-
-## Changing the schema
-
-Edit `src/db/schema.ts`, run `npm run db:generate`, commit the new file in `drizzle/`.
-It is applied on the next deploy.
 
 ## Roadmap
 

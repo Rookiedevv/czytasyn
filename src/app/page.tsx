@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth, signIn } from "@/auth";
+import { getUser } from "@/actions/children";
+import GoogleSignIn from "@/components/GoogleSignIn";
 
-export default async function Home() {
-  const session = await auth();
-  if (session?.user) redirect("/app");
+export default async function Home({ searchParams }: PageProps<"/">) {
+  const user = await getUser();
+  if (user) redirect("/app");
+  const { error } = await searchParams;
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-gradient-to-b from-amber-200 to-orange-100 p-8 text-center">
@@ -14,16 +16,8 @@ export default async function Home() {
         Nauka czytania dla dzieci — po polsku i po angielsku. Rodzic loguje się raz, dziecko wybiera
         swoją postać i gra.
       </p>
-      <form
-        action={async () => {
-          "use server";
-          await signIn("google", { redirectTo: "/app" });
-        }}
-      >
-        <button className="rounded-full bg-white px-10 py-5 text-2xl font-bold text-slate-800 shadow-xl active:scale-95">
-          Zaloguj się przez Google
-        </button>
-      </form>
+      <GoogleSignIn />
+      {error && <p className="text-rose-700">Logowanie nie powiodło się. Spróbuj ponownie.</p>}
       <p className="text-sm text-amber-900/50">
         Konto rodzica. Dzieci nie mają własnych kont ani adresów e-mail.
       </p>

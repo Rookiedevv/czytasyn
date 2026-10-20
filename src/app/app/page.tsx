@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
-import { listChildren } from "@/actions/children";
+import { getUser, listChildren } from "@/actions/children";
 import PendingSync from "@/components/PendingSync";
 
 export default async function ChildPicker() {
-  const session = await auth();
-  if (!session?.user) redirect("/");
+  const user = await getUser();
+  if (!user) redirect("/");
   const kids = await listChildren();
 
   return (

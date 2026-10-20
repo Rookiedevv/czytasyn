@@ -1,24 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { auth, signOut } from "@/auth";
-import { createChild, deleteChild, listChildren } from "@/actions/children";
-import { db } from "@/db";
-import { progress } from "@/db/schema";
-import { inArray } from "drizzle-orm";
+import { createChild, deleteChild, getAllProgress, getUser, listChildren, signOut } from "@/actions/children";
 import { AVATARS, LESSONS, THEMES } from "@/content/lessons";
 import ParentGate from "@/components/ParentGate";
 
 export default async function ParentPage() {
-  const session = await auth();
-  if (!session?.user) redirect("/");
+  const user = await getUser();
+  if (!user) redirect("/");
   const kids = await listChildren();
-  const rows =
-    kids.length > 0
-      ? await db
-          .select()
-          .from(progress)
-          .where(inArray(progress.childId, kids.map((k) => k.id)))
-      : [];
+  const rows = await getAllProgress();
 
   return (
     <ParentGate>
@@ -26,13 +16,8 @@ export default async function ParentPage() {
         <header className="flex items-center justify-between">
           <h1 className="text-4xl font-extrabold">Strefa rodzica</h1>
           <div className="flex items-center gap-4 text-sm text-slate-500">
-            <span>{session.user.email}</span>
-            <form
-              action={async () => {
-                "use server";
-                await signOut({ redirectTo: "/" });
-              }}
-            >
+            <span>{user.email}</span>
+            <form action={signOut}>
               <button className="rounded-full border px-4 py-2">Wyloguj</button>
             </form>
           </div>
@@ -43,7 +28,7 @@ export default async function ParentPage() {
           {kids.length === 0 && <p className="text-slate-500">Dodaj pierwsze dziecko poniżej.</p>}
           <ul className="space-y-4">
             {kids.map((k) => {
-              const mine = rows.filter((r) => r.childId === k.id);
+              const mine = rows.filter((r) => r.child_id === k.id);
               const lessons = LESSONS.filter((l) => l.lang === k.lang);
               const stars = mine.reduce((s, r) => s + r.stars, 0);
               const done = mine.filter((r) => r.completed).length;

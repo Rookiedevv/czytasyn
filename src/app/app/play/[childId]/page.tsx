@@ -1,12 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { auth } from "@/auth";
-import { getOwnChild, getProgress } from "@/actions/children";
+import { getOwnChild, getProgress, getUser } from "@/actions/children";
 import { lessonsFor, THEMES } from "@/content/lessons";
 
 export default async function LessonMap({ params }: PageProps<"/app/play/[childId]">) {
-  const session = await auth();
-  if (!session?.user) redirect("/");
+  const user = await getUser();
+  if (!user) redirect("/");
   const { childId } = await params;
   const child = await getOwnChild(childId);
   if (!child) notFound();
@@ -18,7 +17,7 @@ export default async function LessonMap({ params }: PageProps<"/app/play/[childI
   // A lesson unlocks once the previous one has been completed.
   let unlockedUpTo = 0;
   for (let i = 0; i < lessons.length; i++) {
-    if (prog.find((p) => p.lessonId === lessons[i].id)?.completed) unlockedUpTo = i + 1;
+    if (prog.find((p) => p.lesson_id === lessons[i].id)?.completed) unlockedUpTo = i + 1;
     else break;
   }
 
@@ -34,7 +33,7 @@ export default async function LessonMap({ params }: PageProps<"/app/play/[childI
 
       <div className="flex flex-wrap justify-center gap-6">
         {lessons.map((l, i) => {
-          const p = prog.find((x) => x.lessonId === l.id);
+          const p = prog.find((x) => x.lesson_id === l.id);
           const locked = i > unlockedUpTo;
           const stars = p?.stars ?? 0;
           const inner = (
