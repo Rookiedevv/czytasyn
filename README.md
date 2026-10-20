@@ -8,13 +8,13 @@ Google once; children pick their avatar and play. Children never have accounts.
 
 - Next.js (App Router) on Vercel
 - Auth.js with Google sign-in (parent account)
-- Neon Postgres + Drizzle ORM (child profiles, lesson progress)
+- Supabase Postgres + Drizzle ORM (child profiles, lesson progress)
 - Service worker for offline use, Web Speech API for the voice (recorded audio: TODO)
 
 ## Deploy (one time)
 
 1. **Vercel** → New Project → import this repo → Deploy. Note the URL (e.g. `https://czytasyn.vercel.app`).
-2. Vercel project → **Storage** → Create → **Neon** → connect to this project. This sets `DATABASE_URL`.
+2. **Supabase** → New project → Connect → copy the **Transaction pooler** connection string (port 6543) and, optionally, the **Direct connection** string.
 3. **Google Cloud** → create project → OAuth consent screen (External, add yourself as test user) →
    Credentials → OAuth client ID (Web application) with redirect URIs:
    - `http://localhost:3000/api/auth/callback/google`
@@ -22,6 +22,7 @@ Google once; children pick their avatar and play. Children never have accounts.
 4. Vercel project → Settings → **Environment Variables**:
    - `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET` from step 3
    - `AUTH_SECRET` — any random string (https://generate-secret.vercel.app/32)
+   - `DATABASE_URL` (pooler string from step 2) and `DIRECT_URL` (direct string, optional)
 5. Deployments → Redeploy. The build runs the database migrations automatically
    (`scripts/migrate.mjs`), so no manual database setup is needed.
 
