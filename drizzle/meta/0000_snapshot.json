@@ -1,12 +1,12 @@
 {
-  "id": "169ae1b7-2ec9-4ef9-9d52-8bd18a2859e8",
+  "id": "4cf78fb9-858a-4575-8a9f-e8f5046bce0c",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.account": {
+    "czytasyn.account": {
       "name": "account",
-      "schema": "",
+      "schema": "czytasyn",
       "columns": {
         "userId": {
           "name": "userId",
@@ -81,6 +81,7 @@
           "name": "account_userId_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
+          "schemaTo": "czytasyn",
           "columnsFrom": [
             "userId"
           ],
@@ -105,9 +106,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.child": {
+    "czytasyn.child": {
       "name": "child",
-      "schema": "",
+      "schema": "czytasyn",
       "columns": {
         "id": {
           "name": "id",
@@ -162,6 +163,7 @@
           "name": "child_userId_user_id_fk",
           "tableFrom": "child",
           "tableTo": "user",
+          "schemaTo": "czytasyn",
           "columnsFrom": [
             "userId"
           ],
@@ -178,9 +180,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.progress": {
+    "czytasyn.progress": {
       "name": "progress",
-      "schema": "",
+      "schema": "czytasyn",
       "columns": {
         "childId": {
           "name": "childId",
@@ -236,6 +238,7 @@
           "name": "progress_childId_child_id_fk",
           "tableFrom": "progress",
           "tableTo": "child",
+          "schemaTo": "czytasyn",
           "columnsFrom": [
             "childId"
           ],
@@ -260,9 +263,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.session": {
+    "czytasyn.session": {
       "name": "session",
-      "schema": "",
+      "schema": "czytasyn",
       "columns": {
         "sessionToken": {
           "name": "sessionToken",
@@ -289,6 +292,7 @@
           "name": "session_userId_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
+          "schemaTo": "czytasyn",
           "columnsFrom": [
             "userId"
           ],
@@ -305,9 +309,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.user": {
+    "czytasyn.user": {
       "name": "user",
-      "schema": "",
+      "schema": "czytasyn",
       "columns": {
         "id": {
           "name": "id",
@@ -356,9 +360,9 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.verificationToken": {
+    "czytasyn.verificationToken": {
       "name": "verificationToken",
-      "schema": "",
+      "schema": "czytasyn",
       "columns": {
         "identifier": {
           "name": "identifier",
@@ -397,7 +401,9 @@
     }
   },
   "enums": {},
-  "schemas": {},
+  "schemas": {
+    "czytasyn": "czytasyn"
+  },
   "sequences": {},
   "roles": {},
   "policies": {},

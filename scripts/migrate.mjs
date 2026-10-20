@@ -18,7 +18,7 @@ if (!url) {
 
 const client = postgres(url, { prepare: false, max: 1 });
 try {
-  await migrate(drizzle(client), { migrationsFolder: "./drizzle" });
+  await migrate(drizzle(client), { migrationsFolder: "./drizzle", migrationsSchema: "czytasyn" });
   console.log("[migrate] database is up to date.");
 } finally {
   await client.end();

@@ -5,6 +5,8 @@ export default defineConfig({
   schema: "./src/db/schema.ts",
   out: "./drizzle",
   dialect: "postgresql",
+  schemaFilter: ["czytasyn"],
+  migrations: { schema: "czytasyn" },
   dbCredentials: {
     url:
       process.env.DIRECT_URL ??

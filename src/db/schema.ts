@@ -2,18 +2,23 @@ import {
   boolean,
   integer,
   jsonb,
-  pgTable,
+  pgSchema,
   primaryKey,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+
+// All Czytasyn tables live in their own Postgres schema, so the app can share a
+// Supabase project (one database) with other apps without any name clashes.
 import type { AdapterAccountType } from "next-auth/adapters";
+
+export const czytasyn = pgSchema("czytasyn");
 
 // ---------------------------------------------------------------------------
 // Auth.js tables (parents). Shape required by @auth/drizzle-adapter.
 // ---------------------------------------------------------------------------
 
-export const users = pgTable("user", {
+export const users = czytasyn.table("user", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
@@ -23,7 +28,7 @@ export const users = pgTable("user", {
   image: text("image"),
 });
 
-export const accounts = pgTable(
+export const accounts = czytasyn.table(
   "account",
   {
     userId: text("userId")
@@ -45,7 +50,7 @@ export const accounts = pgTable(
   ],
 );
 
-export const sessions = pgTable("session", {
+export const sessions = czytasyn.table("session", {
   sessionToken: text("sessionToken").primaryKey(),
   userId: text("userId")
     .notNull()
@@ -53,7 +58,7 @@ export const sessions = pgTable("session", {
   expires: timestamp("expires", { mode: "date" }).notNull(),
 });
 
-export const verificationTokens = pgTable(
+export const verificationTokens = czytasyn.table(
   "verificationToken",
   {
     identifier: text("identifier").notNull(),
@@ -67,7 +72,7 @@ export const verificationTokens = pgTable(
 // Czytasyn tables. A child never has an account; it belongs to a parent user.
 // ---------------------------------------------------------------------------
 
-export const children = pgTable("child", {
+export const children = czytasyn.table("child", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
@@ -81,7 +86,7 @@ export const children = pgTable("child", {
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
 });
 
-export const progress = pgTable(
+export const progress = czytasyn.table(
   "progress",
   {
     childId: text("childId")

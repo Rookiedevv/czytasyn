@@ -14,7 +14,7 @@ Google once; children pick their avatar and play. Children never have accounts.
 ## Deploy (one time)
 
 1. **Vercel** → New Project → import this repo → Deploy. Note the URL (e.g. `https://czytasyn.vercel.app`).
-2. **Supabase** → New project → Connect → copy the **Transaction pooler** connection string (port 6543) and, optionally, the **Direct connection** string.
+2. **Supabase** → any project (a new one, or an existing one — Czytasyn keeps its tables in its own `czytasyn` schema) → Connect → copy the **Transaction pooler** connection string (port 6543) and, optionally, the **Direct connection** string.
 3. **Google Cloud** → create project → OAuth consent screen (External, add yourself as test user) →
    Credentials → OAuth client ID (Web application) with redirect URIs:
    - `http://localhost:3000/api/auth/callback/google`
