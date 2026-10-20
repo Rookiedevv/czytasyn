@@ -50,3 +50,47 @@ create policy "own children's progress" on public.czytasyn_progress
       where c.id = child_id and c.user_id = (select auth.uid())
     )
   );
+
+-- ---------------------------------------------------------------------------
+-- Learner model (engine). Applied 2026-10-20.
+-- ---------------------------------------------------------------------------
+alter table public.czytasyn_children add column if not exists session_count int not null default 0;
+alter table public.czytasyn_children add column if not exists world text not null default 'zwierzeta';
+alter table public.czytasyn_children add column if not exists collection jsonb not null default '{}'::jsonb;
+
+create table if not exists public.czytasyn_node_state (
+  child_id   uuid not null references public.czytasyn_children (id) on delete cascade,
+  node_id    text not null,
+  state      jsonb not null,
+  updated_at timestamptz not null default now(),
+  primary key (child_id, node_id)
+);
+
+create table if not exists public.czytasyn_sessions (
+  id          uuid primary key default gen_random_uuid(),
+  child_id    uuid not null references public.czytasyn_children (id) on delete cascade,
+  number      int not null,
+  world_id    text not null,
+  probe       boolean not null default false,
+  trials      int not null default 0,
+  correct     int not null default 0,
+  results     jsonb not null default '[]'::jsonb,
+  started_at  timestamptz not null default now(),
+  finished_at timestamptz not null default now()
+);
+create index if not exists czytasyn_sessions_child_idx on public.czytasyn_sessions (child_id, number);
+
+alter table public.czytasyn_node_state enable row level security;
+alter table public.czytasyn_sessions enable row level security;
+
+drop policy if exists "own node state" on public.czytasyn_node_state;
+create policy "own node state" on public.czytasyn_node_state
+  for all to authenticated
+  using (exists (select 1 from public.czytasyn_children c where c.id = child_id and c.user_id = (select auth.uid())))
+  with check (exists (select 1 from public.czytasyn_children c where c.id = child_id and c.user_id = (select auth.uid())));
+
+drop policy if exists "own sessions" on public.czytasyn_sessions;
+create policy "own sessions" on public.czytasyn_sessions
+  for all to authenticated
+  using (exists (select 1 from public.czytasyn_children c where c.id = child_id and c.user_id = (select auth.uid())))
+  with check (exists (select 1 from public.czytasyn_children c where c.id = child_id and c.user_id = (select auth.uid())));

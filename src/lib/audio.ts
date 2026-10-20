@@ -5,7 +5,7 @@
 // warm with a short silent buffer. Speech synthesis is used for the lesson
 // voice until recorded audio is added.
 
-import type { Lang } from "@/content/lessons";
+import type { Lang } from "@/engine/graph";
 
 let ctx: AudioContext | null = null;
 let unlocked = false;

@@ -2,7 +2,7 @@
    Strategy: network first for pages (so new deploys show up), cache fallback
    when offline; cache first for static assets (fonts, icons, JS chunks). */
 
-const VERSION = "czytasyn-v1";
+const VERSION = "czytasyn-v2";
 const SHELL = ["/app", "/icons/icon-192.png", "/icons/icon-512.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {

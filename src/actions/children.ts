@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AVATARS, THEMES } from "@/content/lessons";
+import { AVATARS } from "@/content/lessons";
 
 export type Child = {
   id: string;
@@ -13,6 +13,9 @@ export type Child = {
   theme: string;
   lang: "pl" | "en";
   created_at: string;
+  session_count: number;
+  world: string;
+  collection: Record<string, number>;
 };
 
 export type Progress = {
@@ -59,7 +62,6 @@ export async function createChild(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim().slice(0, 30);
   const avatar = String(formData.get("avatar") ?? AVATARS[0]);
-  const theme = String(formData.get("theme") ?? "forest");
   const lang = String(formData.get("lang") ?? "pl") === "en" ? "en" : "pl";
   if (!name) return;
 
@@ -67,7 +69,6 @@ export async function createChild(formData: FormData) {
     user_id: user.id,
     name,
     avatar: AVATARS.includes(avatar) ? avatar : AVATARS[0],
-    theme: theme in THEMES ? theme : "forest",
     lang,
   });
   if (error) throw new Error(error.message);

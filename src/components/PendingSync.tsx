@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect } from "react";
-import { saveProgress } from "@/actions/children";
+import { finishSession, type FinishInput } from "@/actions/engine";
 
-/** Flushes lesson results that were stored locally while offline. */
+/** Flushes sessions that finished while offline. */
 export default function PendingSync() {
   useEffect(() => {
-    const key = "czytasyn.pending";
-    let pending: Parameters<typeof saveProgress>[0][] = [];
+    const key = "czytasyn.pendingSessions";
+    let pending: FinishInput[] = [];
     try {
       pending = JSON.parse(localStorage.getItem(key) ?? "[]");
     } catch {
@@ -15,10 +15,10 @@ export default function PendingSync() {
     }
     if (pending.length === 0) return;
     (async () => {
-      const left: typeof pending = [];
+      const left: FinishInput[] = [];
       for (const p of pending) {
         try {
-          await saveProgress(p);
+          await finishSession(p);
         } catch {
           left.push(p);
         }

@@ -42,12 +42,17 @@ src/app/                    routes
   page.tsx                  sign-in (parent)
   app/page.tsx              child picker
   app/parent/page.tsx       parent area (behind a parent gate)
-  app/play/[childId]/       lesson map → lesson
+  app/play/[childId]/       world picker → session → collection
   auth/callback/route.ts    Google sign-in return URL
   install/page.tsx          "add to home screen" instructions
 src/components/             LessonRunner, ParentGate, offline sync, SW registration
-src/content/lessons.ts      lesson content (PL + EN) and UI strings
-src/actions/children.ts     server actions: children + progress (Supabase, RLS-protected)
+src/engine/graph.ts         skill graph (PL-0 → PL-2 nodes and prerequisites)
+src/engine/model.ts         learner model: node states, mastery/demotion, review intervals
+src/engine/composer.ts      session composer (60/30/10 mix, scaffolding, placement probe)
+src/engine/evaluate.ts      applies session results to the model
+src/engine/content.ts       worlds: decodability-tagged words, frames, collections, PA words
+src/actions/children.ts     server actions: children (Supabase, RLS-protected)
+src/actions/engine.ts       server actions: load model, commit a session
 src/lib/supabase/           Supabase clients (server, browser)
 src/lib/audio.ts            iPad audio unlock, speech, reward sounds
 src/proxy.ts                session refresh + /app protection
@@ -55,9 +60,17 @@ public/sw.js                service worker
 supabase/schema.sql         database tables and policies
 ```
 
+## How learning works
+
+The engine follows the design in "Reading Progression Engine — Evidence Base and Design":
+phoneme-first Polish with open CV syllables as the first blending unit, mastery by accuracy +
+speed + persistence across days, an expanding review schedule, sessions that are mostly review
+with at most one new letter, and worlds that only choose *which* readable words appear.
+`npx tsx scripts/simulate.ts 30` simulates a child for 30 sessions.
+
 ## Roadmap
 
-- Recorded phoneme audio per language instead of speech synthesis
-- More lesson types: blending (sound-by-sound), word ↔ picture matching, short sentences
-- Themes with illustrations instead of emoji
-- Parent dashboard with per-sound mastery
+- Recorded phoneme audio instead of speech synthesis
+- Polish PL-3+ (remaining letters, digraphs, soft consonants, sentences/texts)
+- English track (unlocks after pl:CVC)
+- Tracing exercises; illustrations instead of emoji

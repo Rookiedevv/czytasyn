@@ -1,63 +1,59 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { getOwnChild, getProgress, getUser } from "@/actions/children";
-import { lessonsFor, THEMES } from "@/content/lessons";
+import { getOwnChild, getUser } from "@/actions/children";
+import { loadStates } from "@/actions/engine";
+import { WORLDS, decodableWords } from "@/engine/content";
+import { masteredGraphemes, practisingGraphemes } from "@/engine/model";
 
-export default async function LessonMap({ params }: PageProps<"/app/play/[childId]">) {
+export default async function WorldPicker({ params }: PageProps<"/app/play/[childId]">) {
   const user = await getUser();
   if (!user) redirect("/");
   const { childId } = await params;
   const child = await getOwnChild(childId);
   if (!child) notFound();
 
-  const lessons = lessonsFor(child.lang === "en" ? "en" : "pl");
-  const prog = await getProgress(child.id);
-  const theme = THEMES[child.theme] ?? THEMES.forest;
-
-  // A lesson unlocks once the previous one has been completed.
-  let unlockedUpTo = 0;
-  for (let i = 0; i < lessons.length; i++) {
-    if (prog.find((p) => p.lesson_id === lessons[i].id)?.completed) unlockedUpTo = i + 1;
-    else break;
-  }
+  const states = await loadStates(child.id);
+  const mastered = masteredGraphemes(states);
+  const practising = practisingGraphemes(states);
+  const firstTime = Object.keys(states).length === 0;
 
   return (
-    <main className={`relative flex min-h-dvh flex-col items-center justify-center gap-10 bg-gradient-to-b ${theme.bg} p-8 text-center select-none`}>
+    <main className="relative flex min-h-dvh flex-col items-center justify-center gap-10 bg-gradient-to-b from-amber-200 to-orange-100 p-8 text-center select-none">
       <Link href="/app" className="absolute left-6 top-6 rounded-full bg-white/70 px-5 py-3 text-2xl shadow">
         ←
       </Link>
       <div className="flex items-center gap-4">
         <span className="text-7xl">{child.avatar}</span>
-        <h1 className="text-5xl font-extrabold text-slate-800">{child.name}</h1>
+        <h1 className="text-5xl font-extrabold text-slate-800">
+          {firstTime ? "Zaczynamy!" : "Wybierz świat"}
+        </h1>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-6">
-        {lessons.map((l, i) => {
-          const p = prog.find((x) => x.lesson_id === l.id);
-          const locked = i > unlockedUpTo;
-          const stars = p?.stars ?? 0;
-          const inner = (
-            <>
-              <span className="text-6xl font-extrabold">{locked ? "🔒" : i + 1}</span>
-              <span className="text-lg font-semibold">{l.title}</span>
-              <span className="text-2xl">{locked ? "" : "⭐".repeat(stars) + "☆".repeat(3 - stars)}</span>
-            </>
-          );
-          return locked ? (
-            <div key={l.id} className="flex w-48 flex-col items-center gap-2 rounded-[2rem] bg-white/40 p-6 text-slate-400">
-              {inner}
-            </div>
-          ) : (
+      <div className="flex flex-wrap justify-center gap-8">
+        {Object.values(WORLDS).map((w) => {
+          const readable = w.words.filter((x) => decodableWords(w.id, mastered, practising).words.some((y) => y.text === x.text)).length;
+          const got = child.collection?.[w.id] ?? 0;
+          return (
             <Link
-              key={l.id}
-              href={`/app/play/${child.id}/${l.id}`}
-              className="flex w-48 flex-col items-center gap-2 rounded-[2rem] bg-white p-6 text-slate-800 shadow-xl transition active:scale-95"
+              key={w.id}
+              href={`/app/play/${child.id}/session/${w.id}`}
+              className={`flex w-64 flex-col items-center gap-3 rounded-[2.5rem] bg-gradient-to-b ${w.bg} p-8 shadow-xl transition active:scale-95`}
             >
-              {inner}
+              <span className="text-8xl">{w.mascot}</span>
+              <span className={`rounded-full px-4 py-1 text-2xl font-bold ${w.chip}`}>{w.name}</span>
+              {!firstTime && (
+                <span className={`text-sm opacity-80 ${w.chip} rounded-full px-3 py-1`}>
+                  📖 {readable} · 🏆 {got}/{w.collection.length}
+                </span>
+              )}
             </Link>
           );
         })}
       </div>
+
+      <p className="text-lg text-amber-900/60">
+        {firstTime ? "Dotknij świata — najpierw krótkie sprawdzenie, co już umiesz." : "Dotknij świata, w którym chcesz dziś czytać."}
+      </p>
     </main>
   );
 }
